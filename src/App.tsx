@@ -15,7 +15,7 @@ class App extends React.Component<{}, AppState> {
                 <div className="editor-sizer">
                     <h1>New document</h1>
                     <ul>
-                        {this.state.blocks.map((block) => (
+                        {this.state.blocks.map((block, _, blocks) => (
                             <li key={block.id} className="block">
                                 <div className="bullet">●</div>
                                 <textarea
@@ -24,7 +24,11 @@ class App extends React.Component<{}, AppState> {
                                             event.preventDefault();
                                             const blocks =
                                                 this.state.blocks.slice();
-                                            blocks.push({
+                                            const nextBlockIndex =
+                                                blocks.findIndex(
+                                                    (b) => b === block
+                                                ) + 1;
+                                            blocks.splice(nextBlockIndex, 0, {
                                                 id: blocks.length,
                                                 value: "",
                                             });
@@ -37,6 +41,12 @@ class App extends React.Component<{}, AppState> {
                                         this.handleChange(event, block.id)
                                     }
                                     value={block.value}
+                                    autoFocus={
+                                        block.id ===
+                                        Math.max(...blocks.map((b) => b.id))
+                                            ? true
+                                            : false
+                                    }
                                 />
                             </li>
                         ))}
