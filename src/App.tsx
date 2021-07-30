@@ -74,12 +74,6 @@ class App extends React.Component<{}, AppState> {
                                     }
                                     value={block.value}
                                     rows={1}
-                                    // autoFocus={
-                                    //     block.id ===
-                                    //     Math.max(...blocks.map((b) => b.id))
-                                    //         ? true
-                                    //         : false
-                                    // }
                                 />
                             </li>
                         ))}
