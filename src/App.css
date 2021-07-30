@@ -22,7 +22,7 @@ textarea {
     resize: none;
 }
 
-.line {
+.block {
     display: flex;
     flex-direction: row;
 }
