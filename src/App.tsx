@@ -19,15 +19,13 @@ class App extends React.Component<{}, AppState> {
                             <li key={block.id} className="block">
                                 <div className="bullet">●</div>
                                 <textarea
-                                    onChange={(event) =>
-                                        this.handleChange(event)
-                                    }
                                     onKeyPress={(event) => {
                                         if (event.key === "Enter") {
                                             event.preventDefault();
-                                            const blocks = this.state.blocks.slice();
+                                            const blocks =
+                                                this.state.blocks.slice();
                                             blocks.push({
-                                                id: blocks.length - 1,
+                                                id: blocks.length,
                                                 value: "",
                                             });
                                             this.setState({
@@ -35,6 +33,10 @@ class App extends React.Component<{}, AppState> {
                                             });
                                         }
                                     }}
+                                    onChange={(event) =>
+                                        this.handleChange(event, block.id)
+                                    }
+                                    value={block.value}
                                 />
                             </li>
                         ))}
@@ -44,9 +46,18 @@ class App extends React.Component<{}, AppState> {
         );
     }
 
-    handleChange(event: React.ChangeEvent<HTMLTextAreaElement>) {
+    handleChange(
+        event: React.ChangeEvent<HTMLTextAreaElement>,
+        blockId: number
+    ) {
+        const newBlockValue = event.target.value;
+        const editedBlockIndex = this.state.blocks.findIndex(
+            (block) => block.id === blockId
+        );
+        const blocks = this.state.blocks.slice();
+        blocks[editedBlockIndex].value = newBlockValue;
         this.setState({
-            blocks: [{ id: 0, value: event.target.value }],
+            blocks: blocks,
         });
     }
 }
