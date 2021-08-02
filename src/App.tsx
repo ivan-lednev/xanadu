@@ -17,7 +17,7 @@ class App extends React.Component<{}, AppState> {
                 <div className="editor-sizer">
                     <h1>New document</h1>
                     <ul>
-                        {this.state.blocks.map((block, _, blocks) => (
+                        {this.state.blocks.map((block, blockIndex, blocks) => (
                             <li key={block.id} className="block">
                                 <div className="bullet">●</div>
                                 <textarea
@@ -26,43 +26,61 @@ class App extends React.Component<{}, AppState> {
                                             ? this.blockInFocus
                                             : undefined
                                     }
-                                    onKeyDown={(event) => {
-                                        const blocks =
-                                            this.state.blocks.slice();
-                                        const blockIndex = blocks.findIndex(
-                                            (otherBlock) => otherBlock === block
+                                    onClick={(event) => {
+                                        const newBlocks = blocks.slice();
+                                        const focusedBlock = newBlocks.find(
+                                            (block) => block.inFocus === true
                                         );
+                                        if (focusedBlock) {
+                                            focusedBlock.inFocus = false;
+                                        }
+                                        newBlocks[blockIndex].inFocus = true;
+                                    }}
+                                    onKeyDown={(event) => {
+                                        const newBlocks = blocks.slice();
+                                        // const blockIndex = blocks.findIndex(
+                                        //     (otherBlock) => otherBlock === block
+                                        // );
                                         const nextBlockIndex = blockIndex + 1;
 
                                         if (event.key === "Enter") {
                                             event.preventDefault();
-                                            blocks[blockIndex].inFocus = false;
-                                            blocks.splice(nextBlockIndex, 0, {
-                                                id: blocks.length,
-                                                value: "",
-                                                inFocus: true,
-                                            });
+                                            newBlocks[blockIndex].inFocus =
+                                                false;
+                                            newBlocks.splice(
+                                                nextBlockIndex,
+                                                0,
+                                                {
+                                                    id: newBlocks.length,
+                                                    value: "",
+                                                    inFocus: true,
+                                                }
+                                            );
                                             this.setState(
                                                 {
-                                                    blocks: blocks,
+                                                    blocks: newBlocks,
                                                 },
                                                 () => {
                                                     this.blockInFocus.current?.focus();
                                                 }
                                             );
                                         } else if (event.key === "ArrowDown") {
-                                            const lastBlock =
+                                            const isLastBlock =
                                                 blockIndex ===
-                                                blocks.length - 1;
-                                            if (lastBlock) {
+                                                newBlocks.length - 1;
+
+                                            if (isLastBlock) {
                                                 return;
                                             }
-                                            blocks[blockIndex].inFocus = false;
-                                            blocks[nextBlockIndex].inFocus =
+                                            newBlocks[blockIndex].inFocus =
+                                                false;
+                                            newBlocks[nextBlockIndex].inFocus =
                                                 true;
+                                            console.log(newBlocks);
+
                                             this.setState(
                                                 {
-                                                    blocks: blocks,
+                                                    blocks: newBlocks,
                                                 },
                                                 () => {
                                                     this.blockInFocus.current?.focus();
