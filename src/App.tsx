@@ -33,10 +33,9 @@ class App extends React.Component<{}, AppState> {
                                             (otherBlock) => otherBlock === block
                                         );
                                         const nextBlockIndex = blockIndex + 1;
-                                        console.log(event.key);
-                                        
+
                                         if (event.key === "Enter") {
-                                            event.preventDefault()
+                                            event.preventDefault();
                                             blocks[blockIndex].inFocus = false;
                                             blocks.splice(nextBlockIndex, 0, {
                                                 id: blocks.length,
@@ -52,12 +51,15 @@ class App extends React.Component<{}, AppState> {
                                                 }
                                             );
                                         } else if (event.key === "ArrowDown") {
-                                            const lastBlock = blockIndex === blocks.length - 1
+                                            const lastBlock =
+                                                blockIndex ===
+                                                blocks.length - 1;
                                             if (lastBlock) {
-                                                return
+                                                return;
                                             }
                                             blocks[blockIndex].inFocus = false;
-                                            blocks[nextBlockIndex].inFocus = true;
+                                            blocks[nextBlockIndex].inFocus =
+                                                true;
                                             this.setState(
                                                 {
                                                     blocks: blocks,
@@ -67,7 +69,6 @@ class App extends React.Component<{}, AppState> {
                                                 }
                                             );
                                         }
-
                                     }}
                                     onChange={(event) =>
                                         this.handleChange(event, block.id)
