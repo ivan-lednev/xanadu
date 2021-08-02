@@ -25,15 +25,13 @@ class App extends React.Component<{}, AppState> {
                                 <textarea
                                     ref={block.ref}
                                     onKeyDown={(event) => {
-                                        const newBlocks = blocks.slice();
-                                        const nextBlockIndex = blockIndex + 1;
-
                                         if (event.key === "Enter") {
                                             event.preventDefault();
+                                            const newBlocks = blocks.slice();
                                             const newBlockRef: React.RefObject<HTMLTextAreaElement> =
                                                 React.createRef();
                                             newBlocks.splice(
-                                                nextBlockIndex,
+                                                blockIndex + 1,
                                                 0,
                                                 {
                                                     id: newBlocks.length,
@@ -51,24 +49,9 @@ class App extends React.Component<{}, AppState> {
                                                 }
                                             );
                                         } else if (event.key === "ArrowDown") {
-                                            const isLastBlock =
-                                                blockIndex ===
-                                                newBlocks.length - 1;
-
-                                            if (isLastBlock) {
-                                                return;
-                                            }
-
-                                            this.blockInFocus = blocks[blockIndex + 1].ref
-
-                                            this.setState(
-                                                {
-                                                    blocks: newBlocks,
-                                                },
-                                                () => {
-                                                    this.blockInFocus.current?.focus();
-                                                }
-                                            );
+                                            blocks[
+                                                blockIndex + 1
+                                            ]?.ref.current?.focus();
                                         }
                                     }}
                                     onChange={(event) =>
