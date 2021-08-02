@@ -5,10 +5,12 @@ class App extends React.Component<{}, AppState> {
     blockInFocus: React.RefObject<HTMLTextAreaElement>;
     constructor(props: {}) {
         super(props);
+        const firstBlockRef: React.RefObject<HTMLTextAreaElement> =
+            React.createRef();
         this.state = {
-            blocks: [{ id: 0, value: "", inFocus: true }],
+            blocks: [{ id: 0, value: "", ref: firstBlockRef }],
         };
-        this.blockInFocus = React.createRef();
+        this.blockInFocus = firstBlockRef;
     }
 
     render() {
@@ -21,41 +23,25 @@ class App extends React.Component<{}, AppState> {
                             <li key={block.id} className="block">
                                 <div className="bullet">●</div>
                                 <textarea
-                                    ref={
-                                        block.inFocus
-                                            ? this.blockInFocus
-                                            : undefined
-                                    }
-                                    onClick={(event) => {
-                                        const newBlocks = blocks.slice();
-                                        const focusedBlock = newBlocks.find(
-                                            (block) => block.inFocus === true
-                                        );
-                                        if (focusedBlock) {
-                                            focusedBlock.inFocus = false;
-                                        }
-                                        newBlocks[blockIndex].inFocus = true;
-                                    }}
+                                    ref={block.ref}
                                     onKeyDown={(event) => {
                                         const newBlocks = blocks.slice();
-                                        // const blockIndex = blocks.findIndex(
-                                        //     (otherBlock) => otherBlock === block
-                                        // );
                                         const nextBlockIndex = blockIndex + 1;
 
                                         if (event.key === "Enter") {
                                             event.preventDefault();
-                                            newBlocks[blockIndex].inFocus =
-                                                false;
+                                            const newBlockRef: React.RefObject<HTMLTextAreaElement> =
+                                                React.createRef();
                                             newBlocks.splice(
                                                 nextBlockIndex,
                                                 0,
                                                 {
                                                     id: newBlocks.length,
                                                     value: "",
-                                                    inFocus: true,
+                                                    ref: newBlockRef,
                                                 }
                                             );
+                                            this.blockInFocus = newBlockRef;
                                             this.setState(
                                                 {
                                                     blocks: newBlocks,
@@ -72,11 +58,8 @@ class App extends React.Component<{}, AppState> {
                                             if (isLastBlock) {
                                                 return;
                                             }
-                                            newBlocks[blockIndex].inFocus =
-                                                false;
-                                            newBlocks[nextBlockIndex].inFocus =
-                                                true;
-                                            console.log(newBlocks);
+
+                                            this.blockInFocus = blocks[blockIndex + 1].ref
 
                                             this.setState(
                                                 {
@@ -125,7 +108,7 @@ interface AppState {
 interface Block {
     id: number;
     value: string;
-    inFocus: boolean;
+    ref: React.RefObject<HTMLTextAreaElement>;
 }
 
 export default App;
