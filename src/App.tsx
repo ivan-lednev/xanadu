@@ -3,12 +3,14 @@ import "./App.css";
 
 class App extends React.Component<{}, AppState> {
     blockInFocus: React.RefObject<HTMLTextAreaElement>;
+    idCounter: number;
     constructor(props: {}) {
         super(props);
         const firstBlockRef: React.RefObject<HTMLTextAreaElement> =
             React.createRef();
+        this.idCounter = 0;
         this.state = {
-            blocks: [{ id: 0, value: "", ref: firstBlockRef }],
+            blocks: [{ id: this.getNextId(), value: "", ref: firstBlockRef }],
         };
         this.blockInFocus = firstBlockRef;
     }
@@ -17,7 +19,7 @@ class App extends React.Component<{}, AppState> {
         return (
             <div className="editor-container">
                 <div className="editor-sizer">
-                    <h1>New document</h1>
+                    <h1>New note</h1>
                     <ul>
                         {this.state.blocks.map((block, blockIndex, blocks) => (
                             <li key={block.id} className="block">
@@ -34,7 +36,7 @@ class App extends React.Component<{}, AppState> {
                                                 blockIndex + 1,
                                                 0,
                                                 {
-                                                    id: newBlocks.length,
+                                                    id: this.getNextId(),
                                                     value: "",
                                                     ref: newBlockRef,
                                                 }
@@ -48,15 +50,44 @@ class App extends React.Component<{}, AppState> {
                                                     this.blockInFocus.current?.focus();
                                                 }
                                             );
+                                        } else if (
+                                            event.key === "Backspace" &&
+                                            block.value.length === 0 &&
+                                            blocks.length > 1
+                                        ) {
+                                            event.preventDefault();
+                                            const newBlocks = blocks.slice();
+                                            newBlocks.splice(blockIndex, 1);
+                                            const indexOfBlockInFocusAfterDeletion =
+                                                blockIndex === 0
+                                                    ? 0
+                                                    : blockIndex - 1;
+                                            this.blockInFocus =
+                                                newBlocks[
+                                                    indexOfBlockInFocusAfterDeletion
+                                                ].ref;
+                                            this.setState(
+                                                {
+                                                    blocks: newBlocks,
+                                                },
+                                                () => {
+                                                    // Это пофиксило проблему для "этой части", дальше стэктрейс в другое место указывает
+                                                    this.blockInFocus.current?.focus();
+                                                }
+                                            );
                                         } else if (event.key === "ArrowDown") {
                                             blocks[
                                                 blockIndex + 1
                                             ]?.ref.current?.focus();
+                                        } else if (event.key === "ArrowUp") {
+                                            blocks[
+                                                blockIndex - 1
+                                            ]?.ref.current?.focus();
                                         }
                                     }}
-                                    onChange={(event) =>
-                                        this.handleChange(event, block.id)
-                                    }
+                                    onChange={(event) => {
+                                        this.handleChange(event, blockIndex);
+                                    }}
                                     value={block.value}
                                     rows={1}
                                 />
@@ -68,18 +99,22 @@ class App extends React.Component<{}, AppState> {
         );
     }
 
+    getNextId() {
+        const next = ++this.idCounter;
+        return next;
+    }
+
     handleChange(
         event: React.ChangeEvent<HTMLTextAreaElement>,
-        blockId: number
+        blockIndex: number
     ) {
         const newBlockValue = event.target.value;
-        const editedBlockIndex = this.state.blocks.findIndex(
-            (block) => block.id === blockId
-        );
-        const blocks = this.state.blocks.slice();
-        blocks[editedBlockIndex].value = newBlockValue;
-        this.setState({
-            blocks: blocks,
+        this.setState((prevState) => {
+            const newBlocks = prevState.blocks.slice();
+            newBlocks[blockIndex].value = newBlockValue;
+            return {
+                blocks: newBlocks,
+            };
         });
     }
 }
