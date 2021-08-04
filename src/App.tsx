@@ -24,14 +24,8 @@ class App extends React.Component<{}, AppState> {
                         const blockIndex = this.state.blocks.findIndex(
                             (block) => block.ref.current === event.target
                         );
-                        if (event.key === "ArrowDown") {
-                            this.state.blocks[
-                                blockIndex + 1
-                            ]?.ref.current?.focus();
-                        } else if (event.key === "ArrowUp") {
-                            this.state.blocks[
-                                blockIndex - 1
-                            ]?.ref.current?.focus();
+                        if (event.key.startsWith("Arrow")) {
+                            this.handleArrowNavigation(event.key, blockIndex);
                         }
                     }}
                 >
@@ -104,6 +98,14 @@ class App extends React.Component<{}, AppState> {
                 </div>
             </div>
         );
+    }
+
+    handleArrowNavigation(key: string, blockIndex: number) {
+        if (key === "ArrowDown") {
+            this.state.blocks[blockIndex + 1]?.ref.current?.focus();
+        } else if (key === "ArrowUp") {
+            this.state.blocks[blockIndex - 1]?.ref.current?.focus();
+        }
     }
 
     getNextId() {
