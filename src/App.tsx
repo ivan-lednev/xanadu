@@ -18,7 +18,23 @@ class App extends React.Component<{}, AppState> {
     render() {
         return (
             <div className="editor-container">
-                <div className="editor-sizer">
+                <div
+                    className="editor-sizer"
+                    onKeyDown={(event: React.KeyboardEvent<HTMLDivElement>) => {
+                        const blockIndex = this.state.blocks.findIndex(
+                            (block) => block.ref.current === event.target
+                        );
+                        if (event.key === "ArrowDown") {
+                            this.state.blocks[
+                                blockIndex + 1
+                            ]?.ref.current?.focus();
+                        } else if (event.key === "ArrowUp") {
+                            this.state.blocks[
+                                blockIndex - 1
+                            ]?.ref.current?.focus();
+                        }
+                    }}
+                >
                     <h1>New note</h1>
                     <ul>
                         {this.state.blocks.map((block, blockIndex, blocks) => (
@@ -71,18 +87,9 @@ class App extends React.Component<{}, AppState> {
                                                     blocks: newBlocks,
                                                 },
                                                 () => {
-                                                    // Это пофиксило проблему для "этой части", дальше стэктрейс в другое место указывает
                                                     this.blockInFocus.current?.focus();
                                                 }
                                             );
-                                        } else if (event.key === "ArrowDown") {
-                                            blocks[
-                                                blockIndex + 1
-                                            ]?.ref.current?.focus();
-                                        } else if (event.key === "ArrowUp") {
-                                            blocks[
-                                                blockIndex - 1
-                                            ]?.ref.current?.focus();
                                         }
                                     }}
                                     onChange={(event) => {
