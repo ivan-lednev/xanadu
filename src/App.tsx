@@ -8,9 +8,33 @@ class App extends React.Component<{}, AppState> {
         super(props);
         const firstBlockRef: React.RefObject<HTMLTextAreaElement> =
             React.createRef();
+        const childRef: React.RefObject<HTMLTextAreaElement> =
+            React.createRef();
+        const grandchildRef: React.RefObject<HTMLTextAreaElement> =
+            React.createRef();
         this.idCounter = 0;
         this.state = {
-            blocks: [{ id: this.getNextId(), value: "", ref: firstBlockRef }],
+            blocks: [
+                {
+                    id: this.getNextId(),
+                    value: "",
+                    ref: firstBlockRef,
+                    children: [
+                        {
+                            id: this.getNextId(),
+                            value: "I'm a child",
+                            ref: childRef,
+                            children: [
+                                {
+                                    id: this.getNextId(),
+                                    value: "I'm a grand-child",
+                                    ref: grandchildRef,
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
         };
         this.blockInFocus = firstBlockRef;
     }
@@ -20,30 +44,35 @@ class App extends React.Component<{}, AppState> {
             <div className="editor-container">
                 <div className="editor-sizer">
                     <h1>New note</h1>
-                    <ul>
-                        {this.state.blocks.map((block, blockIndex) => (
-                            <li key={block.id} className="block">
-                                <div className="bullet">●</div>
-                                <textarea
-                                    ref={block.ref}
-                                    onKeyDown={(event) =>
-                                        this.handleKeyDown(
-                                            event,
-                                            block,
-                                            blockIndex
-                                        )
-                                    }
-                                    onChange={(event) => {
-                                        this.handleChange(event, blockIndex);
-                                    }}
-                                    value={block.value}
-                                    rows={1}
-                                />
-                            </li>
-                        ))}
-                    </ul>
+                    {this.renderBlocks(this.state.blocks)}
                 </div>
             </div>
+        );
+    }
+
+    private renderBlocks(blocks: Block[]) {
+        return (
+            <ul>
+                {blocks.map((block, blockIndex) => (
+                    <li key={block.id} className="block">
+                        <div className="block-content">
+                            <div className="bullet">●</div>
+                            <textarea
+                                ref={block.ref}
+                                onKeyDown={(event) =>
+                                    this.handleKeyDown(event, block, blockIndex)
+                                }
+                                onChange={(event) => {
+                                    this.handleChange(event, blockIndex);
+                                }}
+                                value={block.value}
+                                rows={1}
+                            />
+                        </div>
+                        {block.children && this.renderBlocks(block.children)}
+                    </li>
+                ))}
+            </ul>
         );
     }
 
@@ -136,6 +165,7 @@ interface Block {
     id: number;
     value: string;
     ref: React.RefObject<HTMLTextAreaElement>;
+    children?: Block[];
 }
 
 export default App;

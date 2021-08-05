@@ -3,6 +3,10 @@ body {
     font-size: 16px;
 }
 
+ul {
+    list-style-type: none;
+}
+
 .editor-container {
     display: flex;
     justify-content: center;
@@ -21,7 +25,8 @@ textarea {
     resize: none;
 }
 
-.block {
+
+.block-content {
     display: flex;
     flex-direction: row;
 }
