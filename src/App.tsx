@@ -6,28 +6,28 @@ class App extends React.Component<{}, AppState> {
     idCounter: number;
     constructor(props: {}) {
         super(props);
+        this.idCounter = 0;
         const firstBlockRef: React.RefObject<HTMLTextAreaElement> =
             React.createRef();
+        const firstBlockId: number = this.getNextId();
         const childRef: React.RefObject<HTMLTextAreaElement> =
             React.createRef();
+        const childId: number = this.getNextId();
         const grandchildRef: React.RefObject<HTMLTextAreaElement> =
             React.createRef();
-        this.idCounter = 0;
+        const grandchildId: number = this.getNextId();
         this.state = {
             blocks: [
                 {
-                    id: this.getNextId(),
-                    value: "",
+                    id: firstBlockId,
                     ref: firstBlockRef,
                     children: [
                         {
-                            id: this.getNextId(),
-                            value: "I'm a child",
+                            id: childId,
                             ref: childRef,
                             children: [
                                 {
-                                    id: this.getNextId(),
-                                    value: "I'm a grand-child",
+                                    id: grandchildId,
                                     ref: grandchildRef,
                                 },
                             ],
@@ -35,6 +35,11 @@ class App extends React.Component<{}, AppState> {
                     ],
                 },
             ],
+            blockContent: new Map([
+                [firstBlockId, "First block"],
+                [childId, "I'm a child"],
+                [grandchildId, "I'm a grand-child"],
+            ]),
         };
         this.blockInFocus = firstBlockRef;
     }
@@ -65,8 +70,10 @@ class App extends React.Component<{}, AppState> {
                                 onChange={(event) => {
                                     this.handleChange(event, blockIndex);
                                 }}
-                                value={block.value}
+                                // todo
+                                value={this.state.blockContent.get(block.id)}
                                 rows={1}
+                                data-id={block.id}
                             />
                         </div>
                         {block.children && this.renderBlocks(block.children)}
@@ -93,7 +100,11 @@ class App extends React.Component<{}, AppState> {
                 this.handleEnter(blockIndex);
                 break;
             case "Backspace":
-                if (block.value.length === 0 && this.state.blocks.length > 1) {
+                // todo
+                if (
+                    this.state.blockContent.get(block.id)?.length === 0 &&
+                    this.state.blocks.length > 1
+                ) {
                     event.preventDefault();
                     this.handleBackspace(blockIndex);
                 }
@@ -123,7 +134,6 @@ class App extends React.Component<{}, AppState> {
             React.createRef();
         newBlocks.splice(blockIndex + 1, 0, {
             id: this.getNextId(),
-            value: "",
             ref: newBlockRef,
         });
         this.blockInFocus = newBlockRef;
@@ -147,11 +157,14 @@ class App extends React.Component<{}, AppState> {
         blockIndex: number
     ) {
         const newBlockValue = event.target.value;
+        const blockId = Number.parseInt(event.target.dataset.id as string);
+        console.log(blockId);
+
         this.setState((prevState) => {
-            const newBlocks = prevState.blocks.slice();
-            newBlocks[blockIndex].value = newBlockValue;
+            const newBlockContent = new Map(prevState.blockContent);
+            newBlockContent.set(blockId, newBlockValue);
             return {
-                blocks: newBlocks,
+                blockContent: newBlockContent,
             };
         });
     }
@@ -159,11 +172,11 @@ class App extends React.Component<{}, AppState> {
 
 interface AppState {
     blocks: Block[];
+    blockContent: Map<number, string>;
 }
 
 interface Block {
     id: number;
-    value: string;
     ref: React.RefObject<HTMLTextAreaElement>;
     children?: Block[];
 }
