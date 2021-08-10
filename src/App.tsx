@@ -5,7 +5,7 @@ class App extends React.Component<{}, AppState> {
     blockInFocus: React.RefObject<HTMLTextAreaElement> | undefined;
     idCounter: number;
     blockOrder: number[];
-    blockRefs: Map<number, React.RefObject<HTMLTextAreaElement>>;
+    blockRefs: Map<BlockId, React.RefObject<HTMLTextAreaElement>>;
     constructor(props: {}) {
         super(props);
         this.idCounter = 0;
@@ -14,13 +14,13 @@ class App extends React.Component<{}, AppState> {
 
         const firstBlockRef: React.RefObject<HTMLTextAreaElement> =
             React.createRef();
-        const firstBlockId: number = this.getNextId();
+        const firstBlockId: BlockId = this.getNextId();
         const childRef: React.RefObject<HTMLTextAreaElement> =
             React.createRef();
-        const childId: number = this.getNextId();
+        const childId: BlockId = this.getNextId();
         const grandchildRef: React.RefObject<HTMLTextAreaElement> =
             React.createRef();
-        const grandchildId: number = this.getNextId();
+        const grandchildId: BlockId = this.getNextId();
 
         this.state = {
             blocks: [
@@ -140,13 +140,13 @@ class App extends React.Component<{}, AppState> {
     }
 
     private handleBackspace(
-        blockId: number,
-        previousBlockId: number,
-        nextBlockId: number
+        blockId: BlockId,
+        previousBlockId: BlockId,
+        nextBlockId: BlockId
     ) {
         function filterOutBlockFromTree(
             blocks: Block[],
-            blockIdToDelete: number
+            blockIdToDelete: BlockId
         ) {
             const filtered: Block[] = [];
             for (const block of blocks) {
@@ -222,12 +222,14 @@ class App extends React.Component<{}, AppState> {
 
 interface AppState {
     blocks: Block[];
-    blockContent: Map<number, string>;
+    blockContent: Map<BlockId, string>;
 }
 
 interface Block {
-    id: number;
+    id: BlockId;
     children?: Block[];
 }
+
+type BlockId = number;
 
 export default App;
