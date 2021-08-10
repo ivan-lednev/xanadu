@@ -1,17 +1,31 @@
 import React from "react";
 import "./App.css";
 
+interface AppState {
+    blocks: Block[];
+    blockContent: Map<BlockId, string>;
+}
+
+interface Block {
+    id: BlockId;
+    children?: Block[];
+}
+
+type BlockId = number;
+
 class App extends React.Component<{}, AppState> {
-    blockInFocus: React.RefObject<HTMLTextAreaElement> | undefined;
-    idCounter: number;
-    blockOrder: number[];
-    blockRefs: Map<BlockId, React.RefObject<HTMLTextAreaElement>>;
+    private blockInFocus: React.RefObject<HTMLTextAreaElement> | undefined;
+    private blockOrder: number[] = [];
+    private blockRefs: Map<BlockId, React.RefObject<HTMLTextAreaElement>> =
+        new Map();
+    private idCounter: number = 0;
+
     constructor(props: {}) {
         super(props);
-        this.idCounter = 0;
-        this.blockOrder = [];
-        this.blockRefs = new Map();
+        this.state = this.getStateForTests();
+    }
 
+    private getStateForTests() {
         const firstBlockRef: React.RefObject<HTMLTextAreaElement> =
             React.createRef();
         const firstBlockId: BlockId = this.getNextId();
@@ -21,8 +35,7 @@ class App extends React.Component<{}, AppState> {
         const grandchildRef: React.RefObject<HTMLTextAreaElement> =
             React.createRef();
         const grandchildId: BlockId = this.getNextId();
-
-        this.state = {
+        const state = {
             blocks: [
                 {
                     id: firstBlockId,
@@ -39,16 +52,21 @@ class App extends React.Component<{}, AppState> {
                 },
             ],
             blockContent: new Map([
-                [firstBlockId, "First block"],
-                [childId, "I'm a child"],
-                [grandchildId, "I'm a grand-child"],
+                [firstBlockId, "This is the water"],
+                [childId, "And this is the well"],
+                [grandchildId, "Drink full and descend"],
             ]),
         };
-        // todo: remove refs from the main data structure
         this.blockRefs.set(firstBlockId, firstBlockRef);
         this.blockRefs.set(childId, childRef);
         this.blockRefs.set(grandchildId, grandchildRef);
         this.blockInFocus = firstBlockRef;
+        return state;
+    }
+
+    private getNextId() {
+        const next = ++this.idCounter;
+        return next;
     }
 
     render() {
@@ -66,6 +84,7 @@ class App extends React.Component<{}, AppState> {
     private renderBlocks(blocks: Block[]) {
         return (
             <ul>
+                // todo: remove the index
                 {blocks.map((block, blockIndex) => {
                     const blockId = block.id;
                     this.blockOrder.push(blockId);
@@ -76,6 +95,7 @@ class App extends React.Component<{}, AppState> {
                                 <textarea
                                     ref={this.blockRefs.get(blockId)}
                                     onKeyDown={(event) =>
+                                        // todo: remove the index
                                         this.handleKeyDown(
                                             event,
                                             block,
@@ -83,9 +103,8 @@ class App extends React.Component<{}, AppState> {
                                         )
                                     }
                                     onChange={(event) => {
-                                        this.handleChange(event, blockIndex);
+                                        this.handleChange(event);
                                     }}
-                                    // todo: remove chaining
                                     value={this.state.blockContent.get(blockId)}
                                     rows={1}
                                     data-id={blockId}
@@ -106,7 +125,7 @@ class App extends React.Component<{}, AppState> {
         blockIndex: number
     ) {
         const blockId = block.id;
-        // todo: remove the old one
+        // todo: remove the old one after redoing Enter
         const newBlockIndex = this.blockOrder.findIndex((id) => id === blockId);
         const previousBlockId = this.blockOrder[newBlockIndex - 1];
         const nextBlockId = this.blockOrder[newBlockIndex + 1];
@@ -139,6 +158,27 @@ class App extends React.Component<{}, AppState> {
         }
     }
 
+    // todo: add new blocks at the same level
+    private handleEnter(block: Block, blockIndex: number) {
+        const newBlocks = this.state.blocks.slice();
+        const newBlockId = this.getNextId();
+        const newBlockRef: React.RefObject<HTMLTextAreaElement> =
+            React.createRef();
+        newBlocks.splice(blockIndex + 1, 0, {
+            id: newBlockId,
+        });
+        this.blockRefs.set(newBlockId, newBlockRef);
+        this.blockInFocus = newBlockRef;
+        this.setState(
+            {
+                blocks: newBlocks,
+            },
+            () => {
+                this.blockInFocus?.current?.focus();
+            }
+        );
+    }
+
     private handleBackspace(
         blockId: BlockId,
         previousBlockId: BlockId,
@@ -163,9 +203,11 @@ class App extends React.Component<{}, AppState> {
             }
             return filtered;
         }
+
         const newBlocks = filterOutBlockFromTree(this.state.blocks, blockId);
-        const newBlockInFocus = previousBlockId ? previousBlockId : nextBlockId
-        this.blockInFocus = this.blockRefs.get(newBlockInFocus)
+        const newBlockInFocus = previousBlockId ? previousBlockId : nextBlockId;
+
+        this.blockInFocus = this.blockRefs.get(newBlockInFocus);
         this.setState(
             {
                 blocks: newBlocks,
@@ -176,39 +218,9 @@ class App extends React.Component<{}, AppState> {
         );
     }
 
-    // todo: add new blocks at the same level
-    private handleEnter(block: Block, blockIndex: number) {
-        const newBlocks = this.state.blocks.slice();
-        const newBlockId = this.getNextId();
-        const newBlockRef: React.RefObject<HTMLTextAreaElement> =
-            React.createRef();
-        newBlocks.splice(blockIndex + 1, 0, {
-            id: newBlockId,
-        });
-        this.blockRefs.set(newBlockId, newBlockRef);
-        this.blockInFocus = newBlockRef;
-        this.setState(
-            {
-                blocks: newBlocks,
-            },
-            () => {
-                this.blockInFocus?.current?.focus();
-            }
-        );
-    }
-
-    getNextId() {
-        const next = ++this.idCounter;
-        return next;
-    }
-
-    handleChange(
-        event: React.ChangeEvent<HTMLTextAreaElement>,
-        blockIndex: number
-    ) {
+    handleChange(event: React.ChangeEvent<HTMLTextAreaElement>) {
         const newBlockValue = event.target.value;
         const blockId = Number.parseInt(event.target.dataset.id as string);
-        console.log(blockId);
 
         this.setState((prevState) => {
             const newBlockContent = new Map(prevState.blockContent);
@@ -219,17 +231,5 @@ class App extends React.Component<{}, AppState> {
         });
     }
 }
-
-interface AppState {
-    blocks: Block[];
-    blockContent: Map<BlockId, string>;
-}
-
-interface Block {
-    id: BlockId;
-    children?: Block[];
-}
-
-type BlockId = number;
 
 export default App;
