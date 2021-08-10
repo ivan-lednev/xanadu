@@ -2,11 +2,16 @@ import React from "react";
 import "./App.css";
 
 class App extends React.Component<{}, AppState> {
-    blockInFocus: React.RefObject<HTMLTextAreaElement>;
+    blockInFocus: React.RefObject<HTMLTextAreaElement> | undefined;
     idCounter: number;
+    blockOrder: number[];
+    blockRefs: Map<number, React.RefObject<HTMLTextAreaElement>>;
     constructor(props: {}) {
         super(props);
         this.idCounter = 0;
+        this.blockOrder = [];
+        this.blockRefs = new Map();
+
         const firstBlockRef: React.RefObject<HTMLTextAreaElement> =
             React.createRef();
         const firstBlockId: number = this.getNextId();
@@ -16,19 +21,17 @@ class App extends React.Component<{}, AppState> {
         const grandchildRef: React.RefObject<HTMLTextAreaElement> =
             React.createRef();
         const grandchildId: number = this.getNextId();
+
         this.state = {
             blocks: [
                 {
                     id: firstBlockId,
-                    ref: firstBlockRef,
                     children: [
                         {
                             id: childId,
-                            ref: childRef,
                             children: [
                                 {
                                     id: grandchildId,
-                                    ref: grandchildRef,
                                 },
                             ],
                         },
@@ -41,10 +44,15 @@ class App extends React.Component<{}, AppState> {
                 [grandchildId, "I'm a grand-child"],
             ]),
         };
+        // todo: remove refs from the main data structure
+        this.blockRefs.set(firstBlockId, firstBlockRef);
+        this.blockRefs.set(childId, childRef);
+        this.blockRefs.set(grandchildId, grandchildRef);
         this.blockInFocus = firstBlockRef;
     }
 
     render() {
+        this.blockOrder = [];
         return (
             <div className="editor-container">
                 <div className="editor-sizer">
@@ -58,27 +66,36 @@ class App extends React.Component<{}, AppState> {
     private renderBlocks(blocks: Block[]) {
         return (
             <ul>
-                {blocks.map((block, blockIndex) => (
-                    <li key={block.id} className="block">
-                        <div className="block-content">
-                            <div className="bullet">●</div>
-                            <textarea
-                                ref={block.ref}
-                                onKeyDown={(event) =>
-                                    this.handleKeyDown(event, block, blockIndex)
-                                }
-                                onChange={(event) => {
-                                    this.handleChange(event, blockIndex);
-                                }}
-                                // todo
-                                value={this.state.blockContent.get(block.id)}
-                                rows={1}
-                                data-id={block.id}
-                            />
-                        </div>
-                        {block.children && this.renderBlocks(block.children)}
-                    </li>
-                ))}
+                {blocks.map((block, blockIndex) => {
+                    const blockId = block.id;
+                    this.blockOrder.push(blockId);
+                    return (
+                        <li key={block.id} className="block">
+                            <div className="block-content">
+                                <div className="bullet">●</div>
+                                <textarea
+                                    ref={this.blockRefs.get(blockId)}
+                                    onKeyDown={(event) =>
+                                        this.handleKeyDown(
+                                            event,
+                                            block,
+                                            blockIndex
+                                        )
+                                    }
+                                    onChange={(event) => {
+                                        this.handleChange(event, blockIndex);
+                                    }}
+                                    // todo: remove chaining
+                                    value={this.state.blockContent.get(blockId)}
+                                    rows={1}
+                                    data-id={blockId}
+                                />
+                            </div>
+                            {block.children &&
+                                this.renderBlocks(block.children)}
+                        </li>
+                    );
+                })}
             </ul>
         );
     }
@@ -88,61 +105,94 @@ class App extends React.Component<{}, AppState> {
         block: Block,
         blockIndex: number
     ) {
+        const blockId = block.id;
+        // todo: remove the old one
+        const newBlockIndex = this.blockOrder.findIndex((id) => id === blockId);
+        const previousBlockId = this.blockOrder[newBlockIndex - 1];
+        const nextBlockId = this.blockOrder[newBlockIndex + 1];
+
         switch (event.key) {
             case "ArrowDown":
-                this.state.blocks[blockIndex + 1]?.ref.current?.focus();
+                if (nextBlockId) {
+                    this.blockRefs.get(nextBlockId)?.current?.focus();
+                }
                 break;
             case "ArrowUp":
-                this.state.blocks[blockIndex - 1]?.ref.current?.focus();
+                if (previousBlockId) {
+                    this.blockRefs.get(previousBlockId)?.current?.focus();
+                }
                 break;
             case "Enter":
                 event.preventDefault();
-                this.handleEnter(blockIndex);
+                this.handleEnter(block, blockIndex);
                 break;
             case "Backspace":
-                // todo
+                const blockContent = this.state.blockContent.get(block.id);
                 if (
-                    this.state.blockContent.get(block.id)?.length === 0 &&
-                    this.state.blocks.length > 1
+                    (blockContent === undefined || blockContent.length === 0) &&
+                    this.blockOrder.length > 1
                 ) {
                     event.preventDefault();
-                    this.handleBackspace(blockIndex);
+                    this.handleBackspace(blockId, previousBlockId, nextBlockId);
                 }
                 break;
         }
     }
 
-    private handleBackspace(blockIndex: number) {
-        const newBlocks = this.state.blocks.slice();
-        newBlocks.splice(blockIndex, 1);
-        const indexOfBlockInFocusAfterDeletion =
-            blockIndex === 0 ? 0 : blockIndex - 1;
-        this.blockInFocus = newBlocks[indexOfBlockInFocusAfterDeletion].ref;
+    private handleBackspace(
+        blockId: number,
+        previousBlockId: number,
+        nextBlockId: number
+    ) {
+        function filterOutBlockFromTree(
+            blocks: Block[],
+            blockIdToDelete: number
+        ) {
+            const filtered: Block[] = [];
+            for (const block of blocks) {
+                if (block.id === blockIdToDelete) {
+                    continue;
+                }
+                if (block.children) {
+                    block.children = filterOutBlockFromTree(
+                        block.children,
+                        blockIdToDelete
+                    );
+                }
+                filtered.push(block);
+            }
+            return filtered;
+        }
+        const newBlocks = filterOutBlockFromTree(this.state.blocks, blockId);
+        const newBlockInFocus = previousBlockId ? previousBlockId : nextBlockId
+        this.blockInFocus = this.blockRefs.get(newBlockInFocus)
         this.setState(
             {
                 blocks: newBlocks,
             },
             () => {
-                this.blockInFocus.current?.focus();
+                this.blockInFocus?.current?.focus();
             }
         );
     }
 
-    private handleEnter(blockIndex: number) {
+    // todo: add new blocks at the same level
+    private handleEnter(block: Block, blockIndex: number) {
         const newBlocks = this.state.blocks.slice();
+        const newBlockId = this.getNextId();
         const newBlockRef: React.RefObject<HTMLTextAreaElement> =
             React.createRef();
         newBlocks.splice(blockIndex + 1, 0, {
-            id: this.getNextId(),
-            ref: newBlockRef,
+            id: newBlockId,
         });
+        this.blockRefs.set(newBlockId, newBlockRef);
         this.blockInFocus = newBlockRef;
         this.setState(
             {
                 blocks: newBlocks,
             },
             () => {
-                this.blockInFocus.current?.focus();
+                this.blockInFocus?.current?.focus();
             }
         );
     }
@@ -177,7 +227,6 @@ interface AppState {
 
 interface Block {
     id: number;
-    ref: React.RefObject<HTMLTextAreaElement>;
     children?: Block[];
 }
 
