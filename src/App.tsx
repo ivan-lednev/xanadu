@@ -82,7 +82,6 @@ class App extends React.Component<{}, AppState> {
     }
 
     private renderBlocks(blocks: Block[]) {
-        // todo: remove the index
         return (
             <ul>
                 {blocks.map((block, blockIndex) => {
@@ -95,11 +94,9 @@ class App extends React.Component<{}, AppState> {
                                 <textarea
                                     ref={this.blockRefs.get(blockId)}
                                     onKeyDown={(event) =>
-                                        // todo: remove the index
                                         this.handleKeyDown(
                                             event,
-                                            block,
-                                            blockIndex
+                                            block
                                         )
                                     }
                                     onChange={(event) => {
@@ -121,8 +118,7 @@ class App extends React.Component<{}, AppState> {
 
     private handleKeyDown(
         event: React.KeyboardEvent<HTMLTextAreaElement>,
-        block: Block,
-        blockIndex: number
+        block: Block
     ) {
         const blockId = block.id;
         // todo: remove the old one after redoing Enter
@@ -143,7 +139,7 @@ class App extends React.Component<{}, AppState> {
                 break;
             case "Enter":
                 event.preventDefault();
-                this.handleEnter(block, blockIndex);
+                this.handleEnter(block);
                 break;
             case "Backspace":
                 const blockContent = this.state.blockContent.get(block.id);
@@ -158,13 +154,11 @@ class App extends React.Component<{}, AppState> {
         }
     }
 
-    // todo: add new blocks at the same level
-    private handleEnter(block: Block, blockIndex: number) {
-        const newBlocks = this.state.blocks.slice();
+    private handleEnter(block: Block) {
         const newBlockId = this.getNextId();
         const newBlockRef: React.RefObject<HTMLTextAreaElement> =
             React.createRef();
-        newBlocks.splice(blockIndex + 1, 0, {
+        const newBlocks = this.insertBlockIntoTree(this.state.blocks, block, {
             id: newBlockId,
         });
         this.blockRefs.set(newBlockId, newBlockRef);
@@ -177,6 +171,28 @@ class App extends React.Component<{}, AppState> {
                 this.blockInFocus?.current?.focus();
             }
         );
+    }
+
+    private insertBlockIntoTree(
+        blocks: Block[],
+        blockInFocus: Block,
+        newBlock: Block
+    ) {
+        const updatedTree: Block[] = [];
+        for (const block of blocks) {
+            updatedTree.push(block);
+            if (block.id === blockInFocus.id) {
+                updatedTree.push(newBlock);
+            }
+            if (block.children) {
+                block.children = this.insertBlockIntoTree(
+                    block.children,
+                    blockInFocus,
+                    newBlock
+                );
+            }
+        }
+        return updatedTree;
     }
 
     private handleBackspace(
