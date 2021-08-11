@@ -82,9 +82,9 @@ class App extends React.Component<{}, AppState> {
     }
 
     private renderBlocks(blocks: Block[]) {
+        // todo: remove the index
         return (
             <ul>
-                // todo: remove the index
                 {blocks.map((block, blockIndex) => {
                     const blockId = block.id;
                     this.blockOrder.push(blockId);
@@ -184,27 +184,11 @@ class App extends React.Component<{}, AppState> {
         previousBlockId: BlockId,
         nextBlockId: BlockId
     ) {
-        function filterOutBlockFromTree(
-            blocks: Block[],
-            blockIdToDelete: BlockId
-        ) {
-            const filtered: Block[] = [];
-            for (const block of blocks) {
-                if (block.id === blockIdToDelete) {
-                    continue;
-                }
-                if (block.children) {
-                    block.children = filterOutBlockFromTree(
-                        block.children,
-                        blockIdToDelete
-                    );
-                }
-                filtered.push(block);
-            }
-            return filtered;
-        }
-
-        const newBlocks = filterOutBlockFromTree(this.state.blocks, blockId);
+        const newBlocks = this.filterOutBlockFromTree(
+            this.state.blocks,
+            blockId
+        );
+        // todo: no need to pass both of these parameters. This can be done outside
         const newBlockInFocus = previousBlockId ? previousBlockId : nextBlockId;
 
         this.blockInFocus = this.blockRefs.get(newBlockInFocus);
@@ -218,8 +202,26 @@ class App extends React.Component<{}, AppState> {
         );
     }
 
+    private filterOutBlockFromTree(blocks: Block[], blockIdToDelete: BlockId) {
+        const filtered: Block[] = [];
+        for (const block of blocks) {
+            if (block.id === blockIdToDelete) {
+                continue;
+            }
+            if (block.children) {
+                block.children = this.filterOutBlockFromTree(
+                    block.children,
+                    blockIdToDelete
+                );
+            }
+            filtered.push(block);
+        }
+        return filtered;
+    }
+
     handleChange(event: React.ChangeEvent<HTMLTextAreaElement>) {
         const newBlockValue = event.target.value;
+        // todo: how do I remove casting?
         const blockId = Number.parseInt(event.target.dataset.id as string);
 
         this.setState((prevState) => {
