@@ -8,7 +8,7 @@ interface AppState {
 
 interface Block {
     id: BlockId;
-    children?: Block[];
+    children: Block[];
 }
 
 type BlockId = number;
@@ -45,6 +45,7 @@ class App extends React.Component<{}, AppState> {
                             children: [
                                 {
                                     id: grandchildId,
+                                    children: [],
                                 },
                             ],
                         },
@@ -94,10 +95,7 @@ class App extends React.Component<{}, AppState> {
                                 <textarea
                                     ref={this.blockRefs.get(blockId)}
                                     onKeyDown={(event) =>
-                                        this.handleKeyDown(
-                                            event,
-                                            block
-                                        )
+                                        this.handleKeyDown(event, block)
                                     }
                                     onChange={(event) => {
                                         this.handleChange(event);
@@ -121,7 +119,6 @@ class App extends React.Component<{}, AppState> {
         block: Block
     ) {
         const blockId = block.id;
-        // todo: remove the old one after redoing Enter
         const newBlockIndex = this.blockOrder.findIndex((id) => id === blockId);
         const previousBlockId = this.blockOrder[newBlockIndex - 1];
         const nextBlockId = this.blockOrder[newBlockIndex + 1];
@@ -151,6 +148,10 @@ class App extends React.Component<{}, AppState> {
                     this.handleBackspace(blockId, previousBlockId, nextBlockId);
                 }
                 break;
+            case "Tab":
+                event.preventDefault();
+                this.handleTab(blockId);
+                break;
         }
     }
 
@@ -160,6 +161,7 @@ class App extends React.Component<{}, AppState> {
             React.createRef();
         const newBlocks = this.insertBlockIntoTree(this.state.blocks, block, {
             id: newBlockId,
+            children: []
         });
         this.blockRefs.set(newBlockId, newBlockRef);
         this.blockInFocus = newBlockRef;
@@ -235,7 +237,35 @@ class App extends React.Component<{}, AppState> {
         return filtered;
     }
 
-    handleChange(event: React.ChangeEvent<HTMLTextAreaElement>) {
+    private handleTab(blockId: BlockId) {
+        const newBlocks = this.indentBlockInTree(blockId, this.state.blocks);
+        this.setState({
+            blocks: newBlocks,
+        }, () => this.blockRefs.get(blockId)?.current?.focus());
+    }
+
+    private indentBlockInTree(blockIdToIndent: BlockId, blocks: Block[]) {
+        const newBlocks = [];
+        for (let i = 0; i < blocks.length; i++) {
+            const current = blocks[i];
+            const next = blocks[i + 1];
+            newBlocks.push(current);
+            if (current.children) {
+                current.children = this.indentBlockInTree(
+                    blockIdToIndent,
+                    current.children
+                );
+            }
+
+            if (next && next.id === blockIdToIndent) {
+                current.children.push(next);
+                i++;
+            }
+        }
+        return newBlocks;
+    }
+
+    private handleChange(event: React.ChangeEvent<HTMLTextAreaElement>) {
         const newBlockValue = event.target.value;
         // todo: how do I remove casting?
         const blockId = Number.parseInt(event.target.dataset.id as string);
