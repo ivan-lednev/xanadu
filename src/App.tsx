@@ -150,6 +150,10 @@ class App extends React.Component<{}, AppState> {
                 break;
             case "Tab":
                 event.preventDefault();
+                if (event.shiftKey) {
+                    this.handleShiftTab(blockId);
+                    break;
+                }
                 this.handleTab(blockId);
                 break;
         }
@@ -161,7 +165,7 @@ class App extends React.Component<{}, AppState> {
             React.createRef();
         const newBlocks = this.insertBlockIntoTree(this.state.blocks, block, {
             id: newBlockId,
-            children: []
+            children: [],
         });
         this.blockRefs.set(newBlockId, newBlockRef);
         this.blockInFocus = newBlockRef;
@@ -237,11 +241,62 @@ class App extends React.Component<{}, AppState> {
         return filtered;
     }
 
+    private handleShiftTab(blockId: BlockId) {
+        const newBlocks = this.dedentBlockInTree(blockId, this.state.blocks);
+        this.setState(
+            {
+                blocks: newBlocks,
+            },
+            () => this.blockRefs.get(blockId)?.current?.focus()
+        );
+    }
+
+    private dedentBlockInTree(
+        blockIdToDedent: BlockId,
+        blocks: Block[],
+    ) {
+        function descendForDedenting(blocks: Block[]): Block | null {
+            for (let i = 0; i < blocks.length; i++) {
+                const block = blocks[i];
+                if (block.id === blockIdToDedent) {
+                    blocks.splice(i, 1)
+                    return block;
+                }
+                if (block.children.length > 0) {
+                    const retrieved = descendForDedenting(block.children);
+                    if (retrieved !== null) {
+                        blocks.splice(i + 1, 0, retrieved);
+                        return null;
+                    }
+                }
+            }
+            return null;
+        }
+
+        for (let i = 0; i < blocks.length; i++) {
+            const block = blocks[i];
+            if (block.id === blockIdToDedent) {
+                break
+            }
+            if (block.children.length > 0) {
+                const retrieved = descendForDedenting(block.children);
+                if (retrieved !== null) {
+                    blocks.splice(i + 1, 0, retrieved);
+                    break
+                }
+            }
+        }
+        return blocks
+    }
+
     private handleTab(blockId: BlockId) {
         const newBlocks = this.indentBlockInTree(blockId, this.state.blocks);
-        this.setState({
-            blocks: newBlocks,
-        }, () => this.blockRefs.get(blockId)?.current?.focus());
+        this.setState(
+            {
+                blocks: newBlocks,
+            },
+            () => this.blockRefs.get(blockId)?.current?.focus()
+        );
     }
 
     private indentBlockInTree(blockIdToIndent: BlockId, blocks: Block[]) {
