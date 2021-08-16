@@ -1,3 +1,4 @@
+import { cloneDeep } from "lodash";
 import React from "react";
 import "./App.css";
 
@@ -163,7 +164,8 @@ class App extends React.Component<{}, AppState> {
         const newBlockId = this.getNextId();
         const newBlockRef: React.RefObject<HTMLTextAreaElement> =
             React.createRef();
-        const newBlocks = this.insertBlockIntoTree(this.state.blocks, block, {
+        const newBlocks = cloneDeep(this.state.blocks);
+        this.insertBlockIntoTree(newBlocks, block, {
             id: newBlockId,
             children: [],
         });
@@ -184,21 +186,22 @@ class App extends React.Component<{}, AppState> {
         blockInFocus: Block,
         newBlock: Block
     ) {
-        const updatedTree: Block[] = [];
-        for (const block of blocks) {
-            updatedTree.push(block);
+        for (const [i, block] of blocks.entries()) {
             if (block.id === blockInFocus.id) {
-                updatedTree.push(newBlock);
+                blocks.splice(i + 1, 0, newBlock);
+                return true;
             }
             if (block.children) {
-                block.children = this.insertBlockIntoTree(
+                const inserted = this.insertBlockIntoTree(
                     block.children,
                     blockInFocus,
                     newBlock
                 );
+                if (inserted) {
+                    return true;
+                }
             }
         }
-        return updatedTree;
     }
 
     private handleBackspace(
@@ -206,10 +209,8 @@ class App extends React.Component<{}, AppState> {
         previousBlockId: BlockId,
         nextBlockId: BlockId
     ) {
-        const newBlocks = this.filterOutBlockFromTree(
-            this.state.blocks,
-            blockId
-        );
+        const newBlocks = cloneDeep(this.state.blocks);
+        this.filterOutBlockFromTree(newBlocks, blockId);
         // todo: no need to pass both of these parameters. This can be done outside
         const newBlockInFocus = previousBlockId ? previousBlockId : nextBlockId;
 
@@ -224,25 +225,28 @@ class App extends React.Component<{}, AppState> {
         );
     }
 
+    // Todo: same as insert
     private filterOutBlockFromTree(blocks: Block[], blockIdToDelete: BlockId) {
-        const filtered: Block[] = [];
-        for (const block of blocks) {
+        for (const [i, block] of blocks.entries()) {
             if (block.id === blockIdToDelete) {
-                continue;
+                blocks.splice(i, 1);
+                return true;
             }
             if (block.children) {
-                block.children = this.filterOutBlockFromTree(
+                const filtered = this.filterOutBlockFromTree(
                     block.children,
                     blockIdToDelete
                 );
+                if (filtered) {
+                    return true;
+                }
             }
-            filtered.push(block);
         }
-        return filtered;
     }
 
     private handleShiftTab(blockId: BlockId) {
-        const newBlocks = this.dedentBlockInTree(blockId, this.state.blocks);
+        const newBlocks = cloneDeep(this.state.blocks);
+        this.dedentBlockInTree(blockId, newBlocks);
         this.setState(
             {
                 blocks: newBlocks,
@@ -251,22 +255,19 @@ class App extends React.Component<{}, AppState> {
         );
     }
 
-    private dedentBlockInTree(
-        blockIdToDedent: BlockId,
-        blocks: Block[],
-    ) {
+    private dedentBlockInTree(blockIdToDedent: BlockId, blocks: Block[]) {
         function descendForDedenting(blocks: Block[]): Block | null {
             for (let i = 0; i < blocks.length; i++) {
                 const block = blocks[i];
                 if (block.id === blockIdToDedent) {
-                    blocks.splice(i, 1)
+                    blocks.splice(i, 1);
                     return block;
                 }
                 if (block.children.length > 0) {
                     const retrieved = descendForDedenting(block.children);
                     if (retrieved !== null) {
                         blocks.splice(i + 1, 0, retrieved);
-                        return null;
+                        break;
                     }
                 }
             }
@@ -276,21 +277,21 @@ class App extends React.Component<{}, AppState> {
         for (let i = 0; i < blocks.length; i++) {
             const block = blocks[i];
             if (block.id === blockIdToDedent) {
-                break
+                break;
             }
             if (block.children.length > 0) {
                 const retrieved = descendForDedenting(block.children);
                 if (retrieved !== null) {
                     blocks.splice(i + 1, 0, retrieved);
-                    break
+                    break;
                 }
             }
         }
-        return blocks
     }
 
     private handleTab(blockId: BlockId) {
-        const newBlocks = this.indentBlockInTree(blockId, this.state.blocks);
+        const newBlocks = cloneDeep(this.state.blocks);
+        this.indentBlockInTree(blockId, newBlocks);
         this.setState(
             {
                 blocks: newBlocks,
@@ -300,24 +301,25 @@ class App extends React.Component<{}, AppState> {
     }
 
     private indentBlockInTree(blockIdToIndent: BlockId, blocks: Block[]) {
-        const newBlocks = [];
-        for (let i = 0; i < blocks.length; i++) {
-            const current = blocks[i];
+        for (const [i, block] of blocks.entries()) {
             const next = blocks[i + 1];
-            newBlocks.push(current);
-            if (current.children) {
-                current.children = this.indentBlockInTree(
-                    blockIdToIndent,
-                    current.children
-                );
-            }
 
             if (next && next.id === blockIdToIndent) {
-                current.children.push(next);
-                i++;
+                blocks.splice(i + 1, 1)
+                block.children.push(next);
+                return true;
+            }
+
+            if (block.children) {
+                const indented = this.indentBlockInTree(
+                    blockIdToIndent,
+                    block.children
+                );
+                if (indented) {
+                    return true;
+                }
             }
         }
-        return newBlocks;
     }
 
     private handleChange(event: React.ChangeEvent<HTMLTextAreaElement>) {
